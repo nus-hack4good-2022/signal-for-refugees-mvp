@@ -21,7 +21,19 @@ exports.getAllHomeListings = (req, res) => {
 }
 
 exports.getOneHomeListing = (req, res) => {
-    console.log("Hello World");
+    const document = db.doc(`/homes/${req.params.id}`);
+    document
+        .get() 
+        .then((doc) => {
+            if (!doc.exists) {
+                return res.status(404).json({ error: 'HomeListing not found' })
+            }
+            return res.json(doc.data());
+        })
+        .catch((err) => {
+            console.error(err);
+            return res.status(500).json({ error: err.code});
+        }) //done by Seung-bot
 }
 
 exports.postOneHomeListing = (req, res) => {
