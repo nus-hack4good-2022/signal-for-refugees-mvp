@@ -5,9 +5,11 @@ const {
     getAllHomeListings,
     postOneHomeListing,
     deleteHomeListing,
+    getOneHomeListing
 } = require('./APIs/home-listings');
 
 app.get("/listings", getAllHomeListings);
+app.get("/listing/:id",getOneHomeListing);
 app.post("/listing", postOneHomeListing);
 app.delete("/listing/:id", deleteHomeListing)
 
