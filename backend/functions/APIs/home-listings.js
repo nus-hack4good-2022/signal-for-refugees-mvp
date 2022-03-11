@@ -1,4 +1,6 @@
 const { db } = require("../util/admin");
+const firebase = require('firebase/compat/app');
+require("firebase/compat/firestore");
 
 exports.getAllHomeListings = (req, res) => {
     db.
@@ -33,7 +35,7 @@ exports.getOneHomeListing = (req, res) => {
         .catch((err) => {
             console.error(err);
             return res.status(500).json({ error: err.code});
-        }) //done by Seung-bot
+        })
 }
 
 exports.postOneHomeListing = (req, res) => {
@@ -93,3 +95,17 @@ exports.deleteHomeListing = (req, res) => {
         })
 }
 
+exports.editHomeListing = (req, res) => {
+    if (req.body.id || req.body.createdAt) {
+        return res.status(400).json({ error: "Not allowed to edit" });
+    }
+    let document = db.collection("homes").doc(`${req.params.id}`);
+    document.update(req.body)
+        .then(() => {
+            res.json({ message: 'Update successful' })
+        })
+        .catch((err) => {
+            console.error(err);
+            return res.status(500).json({ error: err.code })
+        })
+}
