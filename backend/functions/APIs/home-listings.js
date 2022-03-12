@@ -1,4 +1,4 @@
-const { db } = require("../util/admin");
+const { admin, db } = require("../util/admin");
 const firebase = require('firebase/compat/app');
 require("firebase/compat/firestore");
 
@@ -41,7 +41,7 @@ exports.getOneHomeListing = (req, res) => {
                     let hasRequested = false;
                     let requestStatus;
                     doc.data().requests.forEach(request => {
-                        if (request.username = req.user.username) {
+                        if (request.username === req.user.username) {
                             hasRequested = true;
                             requestStatus = request.isAccepted;
                         }
@@ -64,11 +64,12 @@ exports.getOneHomeListing = (req, res) => {
                     });
                 } else {
                     // users who view their own home can see their requestors
-                    if (request.user.username === doc.data().owner) {
+                    if (req.user.username === doc.data().owner) {
+                        console.log(req.user.username);
                         return res.json({
                             homeId: doc.id,
+                            requests: doc.data().requests,
                             ...doc.data(),
-                            requestStatus: requestStatus
                         });
                     } else {
                     // users who don't request for the home can't see requestStatus
@@ -144,6 +145,9 @@ exports.deleteHomeListing = (req, res) => {
         .then((doc) => {
             if (!doc.exists) {
                 return res.status(404).json({ error: 'HomeListing not found' })
+            }
+            if (doc.data().owner !== req.user.username) {
+                return res.status(403).json({ error: 'Unauthorized' })
             }
             return document.delete();
         })
@@ -255,10 +259,11 @@ exports.acceptRequest = (request, response) => {
             if (requestor.username === request.body.requestor_username) {
                 requestorToAccept = {...requestor, isAccepted: 1}
                 document.update({
-                    requestors: admin.firestore.FieldValue.arrayRemove(requestor)
+                    requests: admin.firestore.FieldValue.arrayRemove(requestor)
                 });
                 document.update({
-                    requestors: admin.firestore.FieldValue.arrayUnion(requestorToAccept)
+                    requests: admin.firestore.FieldValue.arrayUnion(requestorToAccept),
+                    tenant: request.body.requestor_username
                 });
             }
             else {
@@ -270,6 +275,19 @@ exports.acceptRequest = (request, response) => {
                     requests: admin.firestore.FieldValue.arrayUnion(requestorToAccept)
                 });
             }
+            ownerRef = db.collection('users').doc(doc.data().owner);
+            ownerRef.get()
+            .then(() => {
+                ownerRef.update({
+                    homesProvided: admin.firestore.FieldValue.arrayUnion({
+                        date: new Date(),
+                        title: doc.data().title,
+                        id: doc.id,
+                        tenant: request.body.requestor_username,
+                        location: doc.data().location,
+                    })
+                })
+            })
         });
     })
     .then(() => {
@@ -306,14 +324,14 @@ exports.rejectRequest = (request, response) => {
 
     document.get()
     .then((doc) => {
-        doc.data().requestors.forEach((requestor) => {
+        doc.data().requests.forEach((requestor) => {
             if (requestor.username === request.body.requestor_username) {
                 requestorToReject = {...requestor, isAccepted: 0}
                 document.update({
-                    requestors: admin.firestore.FieldValue.arrayRemove(requestor)
+                    requests: admin.firestore.FieldValue.arrayRemove(requestor)
                 });
                 document.update({
-                    requestors: admin.firestore.FieldValue.arrayUnion(requestorToReject)
+                    requests: admin.firestore.FieldValue.arrayUnion(requestorToReject)
                 });
             }
         });
@@ -326,4 +344,3 @@ exports.rejectRequest = (request, response) => {
         return response.status(500).json({ error: err.code });
     });
 }
-

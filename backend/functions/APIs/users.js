@@ -214,3 +214,21 @@ exports.getImageUrl = (request, response) => {
 			return response.status(500).json({ error: error.code });
 		});
 }
+
+// get user details for a particular user
+exports.getAnotherUserDetails = (request, response) => {
+    let userData = {};
+    db
+        .doc(`/users/${request.params.username}`)
+        .get()
+        .then((doc) => {
+            if (doc.exists) {
+                userData.userCredentials = doc.data();
+                return response.json(userData);
+            }	
+        })
+        .catch((error) => {
+            console.error(error);
+            return response.status(500).json({ error: error.code });
+        });
+}
